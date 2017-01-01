@@ -1589,6 +1589,36 @@ describe('session()', function(){
           });
         });
       })
+
+      it('should return the new session in the callback', function(done){
+        var app = express()
+          .use(session({ secret: 'keyboard cat', cookie: { maxAge: min }}))
+          .use(function(req, res, next){
+            var id = req.session.id;
+            req.session.regenerate(function(err, session){
+              if (err) return next(err)
+              assert.equal(req.session.id, session.id)
+              res.end();
+            });
+          });
+
+        request(app)
+        .get('/')
+        .expect(shouldSetCookie('connect.sid'))
+        .expect(200, function (err, res) {
+          if (err) return done(err)
+          var id = sid(res)
+          request(app)
+          .get('/')
+          .set('Cookie', cookie(res))
+          .expect(shouldSetCookie('connect.sid'))
+          .expect(200, function (err, res) {
+            if (err) return done(err)
+            assert.notEqual(sid(res), id)
+            done();
+          });
+        });
+      })
     })
 
     describe('.reload()', function () {
